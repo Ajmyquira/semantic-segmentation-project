@@ -13,7 +13,7 @@ class ConvBNRelu(nn.Module):
             padding=kernel // 2,
             bias=False)
         self.bn = nn.BatchNorm2d(out_planes)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU()
 
     def forward(self, x):
         out = self.relu(self.bn(self.conv(x)))
@@ -202,10 +202,10 @@ class STDCNet(nn.Module):
 if __name__ == "__main__":
     x = torch.randn(1, 3, 224, 224)
     # STDCNet813
-    STDC1 = STDCNet(base=64, layers=[2, 2, 2])
+    STDC1 = STDCNet(layers=[2, 2, 2])
     y1 = STDC1(x)
     print(len(y1))
     # STDCNet1446
-    STDC2 = STDCNet(base=64, layers=[4, 5, 3])
+    STDC2 = STDCNet(layers=[4, 5, 3])
     y2 = STDC2(x)
     print(len(y2))
