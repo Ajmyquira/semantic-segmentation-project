@@ -163,6 +163,8 @@ class STDCNet(nn.Module):
     def forward(self, x):
         out_feats = []
 
+        # print(len(self.features))
+
         x = self.features[0](x)
         out_feats.append(x)
         x = self.features[1](x)
@@ -195,15 +197,15 @@ class STDCNet(nn.Module):
                         block(base * int(math.pow(2, i + 2)), base * int(
                             math.pow(2, i + 2)), block_num, 1))
 
-            return nn.Sequential(*features)
+        return nn.Sequential(*features)
 
 if __name__ == "__main__":
     x = torch.randn(1, 3, 224, 224)
-    # STDC1
-    model1 = STDCNet(base=64, layers=[2, 2, 2])
-    y1 = model1(x)
+    # STDCNet813
+    STDC1 = STDCNet(base=64, layers=[2, 2, 2])
+    y1 = STDC1(x)
     print(len(y1))
-    # STDC2
-    model2 = STDCNet(base=64, layers=[4, 5, 3])
-    y2 = model2(x)
+    # STDCNet1446
+    STDC2 = STDCNet(base=64, layers=[4, 5, 3])
+    y2 = STDC2(x)
     print(len(y2))
