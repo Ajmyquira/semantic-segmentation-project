@@ -1,25 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 from stdcseg import STDCNet
-
-class ConvBNReLU(nn.Module):
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 kernel_size,
-                 padding='same'):
-        super().__init__()
-
-        self._conv = nn.Conv2d(
-            in_channels, out_channels, kernel_size, padding=padding)
-        self._batch_norm = nn.BatchNorm2d(out_channels)
-        self._relu = nn.ReLU()
-
-    def forward(self, x):
-        x = self._conv(x)
-        x = self._batch_norm(x)
-        x = self._relu(x)
-        return x
+from operation import ConvBNReLU
 
 class PPContextModule(nn.Module):
     """
