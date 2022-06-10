@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 from operation import ConvBNReLU, ConvBN
+from functions import avg_max_reduce_channel
 
 class UAFM(nn.Module):
     """
@@ -81,4 +82,9 @@ class UAFM_SpAtten(UAFM):
             x (Tensor): The low level feature.
             y (Tensor): The high level feature.
         """
-        # atten =
+        atten = avg_max_reduce_channel([x, y])
+        atten = F.sigmoid(self.conv_xy_atten(atten))
+
+        out = x * atten + y * (1 - atten)
+        out = self.conv_out(out)
+        return out
