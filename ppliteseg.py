@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import attention
@@ -187,6 +188,7 @@ class PPLiteSeg(nn.Module):
         x_hw = x.shape[2:]
 
         feats_backbone = self.backbone(x) # [x2, x4, x8, x16, x32]
+
         assert len(feats_backbone) >= len(self.backbone_indices), \
             f"The nums of backbone feats ({len(feats_backbone)}) should be greater or " \
             f"equal than the nums of backbone_indices ({len(self.backbone_indices)})"
@@ -218,6 +220,9 @@ class PPLiteSeg(nn.Module):
     #     pass
 
 if __name__ == "__main__":
+    x = torch.randn(12, 3, 224, 224)
     # STDC1
     backbone = STDCNet(base=64, layers=[2, 2, 2])
     model = PPLiteSeg(19, backbone)
+    pred = model(x)
+    print(pred[2].shape)

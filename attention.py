@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from operation import ConvBNReLU, ConvBN
@@ -24,7 +25,7 @@ class UAFM(nn.Module):
         self.resize_mode = resize_mode
 
     def check(self, x, y):
-        assert x.ndim == 4 and y.dim == 4
+        assert x.ndim == 4 and y.ndim == 4
         x_h, x_w = x.shape[2:]
         y_h, y_w = y.shape[2:]
         assert x_h >= y_h and x_w >= y_w
@@ -83,7 +84,7 @@ class UAFM_SpAtten(UAFM):
             y (Tensor): The high level feature.
         """
         atten = avg_max_reduce_channel([x, y])
-        atten = F.sigmoid(self.conv_xy_atten(atten))
+        atten = torch.sigmoid(self.conv_xy_atten(atten))
 
         out = x * atten + y * (1 - atten)
         out = self.conv_out(out)

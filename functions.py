@@ -4,8 +4,7 @@ def avg_max_reduce_channel_helper(x, use_concat=True):
     # Reduce hw by avg and max, only support single input
     assert not isinstance(x, (list, tuple))
     mean_value = torch.mean(x, dim=1, keepdim=True)
-    max_value = torch.max(x, dim=1, keepdim=True)
-
+    max_value, max_indices = torch.max(x, dim=1, keepdim=True, out=None)
     if use_concat:
         res = torch.concat([mean_value, max_value], dim=1)
     else:
