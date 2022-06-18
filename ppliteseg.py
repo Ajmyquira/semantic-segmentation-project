@@ -5,6 +5,7 @@ import attention
 from stdcseg import STDCNet
 from operation import ConvBNReLU
 
+
 class PPContextModule(nn.Module):
     """
     Simple Context module.
@@ -26,8 +27,7 @@ class PPContextModule(nn.Module):
         super().__init__()
 
         self.stages = nn.ModuleList([
-            self._make_stage(in_channels, inter_channels, size)
-            for size in bin_sizes
+            self._make_stage(in_channels, inter_channels, size) for size in bin_sizes
         ])
 
         self.conv_out = ConvBNReLU(
@@ -50,7 +50,7 @@ class PPContextModule(nn.Module):
 
         for stage in self.stages:
             x = stage(input)
-            x = F.interpolate(
+            x = F.interpolate(  # Up sampling
                 x,
                 input_shape,
                 mode='bilinear',
@@ -62,6 +62,7 @@ class PPContextModule(nn.Module):
 
         out = self.conv_out(out)
         return out
+
 
 class PPLiteSegHead(nn.Module):
     """
@@ -78,16 +79,14 @@ class PPLiteSegHead(nn.Module):
                  arm_type, resize_mode):
         super().__init__()
 
-        self.cm = PPContextModule(backbone_out_chs[-1], cm_out_ch, cm_out_ch,
-                                  cm_bin_sizes)
+        self.cm = PPContextModule(backbone_out_chs[-1], cm_out_ch, cm_out_ch, cm_bin_sizes)
 
         arm_class = eval("attention." + arm_type)
 
-        self.arm_list = nn.ModuleList() # [..., arm8, arm16, arm32]
+        self.arm_list = nn.ModuleList()  # [..., arm8, arm16, arm32]
         for i in range(len(backbone_out_chs)):
             low_chs = backbone_out_chs[i]
-            high_ch = cm_out_ch if i == len(
-                backbone_out_chs) - 1 else arm_out_chs[i + 1]
+            high_ch = cm_out_ch if i == len(backbone_out_chs) - 1 else arm_out_chs[i + 1]
             out_ch = arm_out_chs[i]
             arm = arm_class(
                 low_chs, high_ch, out_ch, ksize=3, resize_mode=resize_mode)
@@ -114,6 +113,7 @@ class PPLiteSegHead(nn.Module):
 
         return out_feat_list
 
+
 class SegHead(nn.Module):
     def __init__(self, in_chan, mid_chan, n_classes):
         super().__init__()
@@ -132,6 +132,7 @@ class SegHead(nn.Module):
         x = self.conv_out(x)
         return x
 
+
 class PPLiteSeg(nn.Module):
     def __init__(self,
                  num_classes,
@@ -149,6 +150,7 @@ class PPLiteSeg(nn.Module):
         # backbone
         assert hasattr(backbone, 'feat_channels'), \
             "The backbone should has feat_channels."
+        # backbone.feat_channels = [32, 64, 128, 256, 1024]
         assert len(backbone.feat_channels) >= len(backbone_indices), \
             f"The length of input backbone_indices ({len(backbone_indices)}) should not be" \
             f"greater than the length of feat_channels ({len(backbone.feat_channels)})."
@@ -157,10 +159,13 @@ class PPLiteSeg(nn.Module):
             f"less than the length of feat_channels ({len(backbone.feat_channels)})."
         self.backbone = backbone
 
-        assert len(backbone_indices) > 1, "The lenght of backbone_indices " \
+        assert len(backbone_indices) > 1, "The length of backbone_indices " \
             "should be greater than 1"
-        self.backbone_indices = backbone_indices # [..., x16_id, x32_id]
-        backbone_out_chs = [backbone.feat_channels[i] for i in backbone_indices]
+        self.backbone_indices = backbone_indices  # [..., x16_id, x32_id]
+        backbone_out_chs = [backbone.feat_channels[i] for i in backbone_indices]  # [128, 256, 1024]
+
+        # for i in range(len(backbone.feat_channels)):
+        #     print(backbone.feat_channels[i])
 
         # head
         if len(arm_out_chs) == 1:
@@ -168,15 +173,14 @@ class PPLiteSeg(nn.Module):
         assert len(arm_out_chs) == len(backbone_indices), "The length of " \
             "arm_out_chs and backbone_indices should be equal"
 
-        self.ppseg_head = PPLiteSegHead(backbone_out_chs, arm_out_chs,
-                                        cm_bin_sizes, cm_out_ch, arm_type,
+        self.ppseg_head = PPLiteSegHead(backbone_out_chs, arm_out_chs, cm_bin_sizes, cm_out_ch, arm_type,
                                         resize_mode)
 
         if len(seg_head_inter_chs) == 1:
             seg_head_inter_chs = seg_head_inter_chs * len(backbone_indices)
         assert len(seg_head_inter_chs) == len(backbone_indices), "The length of " \
             "seg_head_inter_chs and backbone_indices should be equal"
-        self.seg_heads = nn.ModuleList() # [..., head_16, head32]
+        self.seg_heads = nn.ModuleList()  # [..., head_16, head32]
         for in_ch, mid_ch in zip(arm_out_chs, seg_head_inter_chs):
             self.seg_heads.append(SegHead(in_ch, mid_ch, num_classes))
 
@@ -187,7 +191,10 @@ class PPLiteSeg(nn.Module):
     def forward(self, x):
         x_hw = x.shape[2:]
 
-        feats_backbone = self.backbone(x) # [x2, x4, x8, x16, x32]
+        feats_backbone = self.backbone(x)  # [x2, x4, x8, x16, x32]
+
+        # for i in range(len(feats_backbone)):
+        #     print(feats_backbone[i].shape)
 
         assert len(feats_backbone) >= len(self.backbone_indices), \
             f"The nums of backbone feats ({len(feats_backbone)}) should be greater or " \
@@ -195,7 +202,7 @@ class PPLiteSeg(nn.Module):
 
         feats_selected = [feats_backbone[i] for i in self.backbone_indices]
 
-        feats_head = self.ppseg_head(feats_selected) # [..., x8, x16, x32]
+        feats_head = self.ppseg_head(feats_selected)  # [..., x8, x16, x32]
 
         if self.training:
             logit_list = []
@@ -221,8 +228,13 @@ class PPLiteSeg(nn.Module):
 
 if __name__ == "__main__":
     x = torch.randn(12, 3, 224, 224)
-    # STDC1
-    backbone = STDCNet(base=64, layers=[2, 2, 2])
-    model = PPLiteSeg(19, backbone)
-    pred = model(x)
-    print(pred[2].shape)
+
+    # STDC1 / STDCNet813
+    backbone1 = STDCNet(layers=[2, 2, 2])
+    # STDC2 / STDCNet1446
+    backbone2 = STDCNet(layers=[4, 5, 3])
+
+    model = PPLiteSeg(19, backbone1)
+    prediction = model(x)
+
+    print(prediction[0][0][0])
